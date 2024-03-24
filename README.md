@@ -54,3 +54,22 @@ The Video Sequence Matching Service is designed to identify repeated sequences i
   "time": 0,
   "match_times": [0]
 }
+```
+## How to run
+
+### Monorepo
+
+#### Requirements
+- Docker
+```
+./start_mono.sh
+```
+
+### Microservice
+
+#### Requirements
+- Minikube
+- Docker
+```
+./start_kube.sh
+```
