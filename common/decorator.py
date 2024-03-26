@@ -1,19 +1,17 @@
-from common.logger import default_logger
-from logging import Logger
+from common.logger import debug_logger
 import functools
 import time
 
 def timer():
   def decorator(func):
     @functools.wraps(func)
-    def wrapper(self, *args, **kwargs):
-      logger: Logger = getattr(self, "logger", default_logger)
+    def wrapper(*args, **kwargs):
       start_time = time.time()
-      result = func(self, *args, **kwargs)
+      result = func(*args, **kwargs)
       end_time = time.time()
       execution_time = end_time - start_time
-      logger.info(f"Execution time: {execution_time} seconds")
-      return result, execution_time
+      debug_logger.info(f"Execution time: {execution_time} seconds")
+      return result
     return wrapper
   return decorator
 

@@ -1,30 +1,36 @@
 from database_service.base.provider import BaseProvider
+from message.frame import Frame
 from typing import List
 import redis
-import json
-
-from message.frame import Frame
+import ast
+import os
 
 EXPIRATION_BUFFER = 600
 
 class RedisProvider(BaseProvider):
   def __init__(self):
-    self._client = redis.Redis(db=0)
+    self._client = redis.Redis(host='my-redis', port=6379, db=0)
+
+  def _safe_int(self, value):
+    try:
+      return int(value)
+    except:
+      return 0
 
   def get(self, topic: str, timestamp: int):
     value = self._client.get(f'{topic}:{timestamp}')
-    return json.loads(value) if value else []
+    return ast.literal_eval(value.decode()) if value else []
 
   def get_all(self, topic: str, timestamps: List[int]):
     keys = [f'{topic}:{timestamp}' for timestamp in timestamps]
     values = self._client.mget(keys)
-    return [json.loads(value) if value else [] for value in values]
+    return [ast.literal_eval(value) if value else [] for value in values]
 
-  def set(self, topic: str, timestamp: int, value: List[int], ex=86400):
-    self._client.set(f'{topic}:{timestamp}', json.dumps(value), ex=ex+EXPIRATION_BUFFER)
+  def set(self, topic: str, frame: Frame, ex=86400):
+    self._client.set(f'{topic}:{frame.timestamp}', str(frame.bits), ex=ex+EXPIRATION_BUFFER)
 
   def latest_timestamp(self, topic: str):
-    keys = [int(key) for key in self._client.keys(f'{topic}:*')]
+    keys = [self._safe_int(key) for key in self._client.keys(f'{topic}:*')]
     return max(keys) if keys else None
 
   def get_data_within_window(self, topic: str, matching_window: int):
@@ -32,5 +38,5 @@ class RedisProvider(BaseProvider):
       start = end - matching_window
       timestamps = list(range(start, end+1))
       values = self.get_all(topic, timestamps)
-      return [Frame(timestamp, value) for timestamp, value in zip(timestamps, values)]
+      return [Frame(timestamp=timestamp, bits=value) for timestamp, value in zip(timestamps, values)]
     return []

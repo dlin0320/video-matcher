@@ -6,7 +6,6 @@ from matching_service.api import app
 from message.frame import Frame
 import numpy as np
 import unittest
-import warnings
 
 class TestCalculator(unittest.TestCase):
   @classmethod
@@ -16,15 +15,10 @@ class TestCalculator(unittest.TestCase):
     cls.frames = [Frame(timestamp=i, bits=bits[i]) for i in range(86400)]  
     target_bits = np.random.randint(2, size=(1024))
     processed_data = {frame.timestamp: frame.bits for frame in cls.frames}
-    cls.scores, execution_time = cls.calculator.calculate_similarity(target_bits, processed_data)
-    if execution_time > 5:
-      warnings.warn(f"Execution time: {execution_time} seconds")
+    cls.scores = cls.calculator.calculate_similarity(target_bits, processed_data)
 
   def test_xor_transform(self):
-    result, execution_time = self.calculator.xor_transform(self.frames)
-
-    if execution_time > 5:
-      warnings.warn(f"Execution time: {execution_time} seconds")
+    result = self.calculator.xor_transform(self.frames)
 
     assert len(list(result)) == len(self.frames) - 1
 
@@ -34,83 +28,70 @@ class TestCalculator(unittest.TestCase):
     assert all(isinstance(score, float) for score in self.scores.values())
 
   def test_sum_sequence(self):
-    sums, execution_time = self.calculator.sum_sequence(self.scores)
-
-    if execution_time > 5:
-      warnings.warn(f"Execution time: {execution_time} seconds")
+    sums = self.calculator.sum_sequence(self.scores)
 
     assert len(sums) == len(self.frames)
     assert all(isinstance(timestamp, int) for timestamp in self.scores.keys())
     assert all(isinstance(score, float) for score in sums.values())
 
-class TestMatcher(unittest.TestCase):
-  def setUp(self) -> None:
-    self.matcher = SyncopateMatcher()
-    self.matcher._provider = MockProvider()
-    self.matcher.start()
-
-  def tearDown(self) -> None:
-    self.matcher.stop()
-
-  def test_random(self):
-    pass
-
 class TestAPI(unittest.TestCase):
   def setUp(self) -> None:
     self.client = TestClient(app)
-    self.matcher = SyncopateMatcher()
-    self.calculator = SyncopateMatcher()._calculator
-    self.matcher.start()
+    self.matcher = SyncopateMatcher(MockProvider())
 
   def tearDown(self) -> None:
-    SyncopateMatcher().stop()
+    self.matcher._calculator._total_bits = 1024
+    self.matcher._calculator._leading_bits = 256
+    self.matcher._calculator._sequence_length = 5
 
   def test_config(self):
     response = self.client.get("/syncopate/config")
     self.assertEqual(response.status_code, 200)
     assert response.json() == {
-      'matching_window': SyncopateMatcher().config['matching_window'],
-      'matching_threshold': SyncopateMatcher().config['matching_threshold']
+      'matching_window': self.matcher.config['matching_window'],
+      'matching_threshold': self.matcher.config['matching_threshold'],
+      'matching_count': self.matcher.config['matching_count']
     }
 
     response = self.client.post("/syncopate/config", 
-      json={'matching_window': 100, 'matching_threshold': 200})
+      json={'matching_window': 100, 'matching_threshold': 200, 'matching_count': 30})
     self.assertEqual(response.status_code, 200)
-    assert SyncopateMatcher().config['matching_window'] == 100
-    assert SyncopateMatcher().config['matching_threshold'] == 200
+    assert self.matcher.config['matching_window'] == 100
+    assert self.matcher.config['matching_threshold'] == 200
+    assert self.matcher.config['matching_count'] == 30
 
   def test_calculator_config(self):
     response = self.client.get("/syncopate/calculator/config")
     self.assertEqual(response.status_code, 200)
     assert response.json() == {
-      'total_bits': self.calculator.config['total_bits'],
-      'leading_bits': self.calculator.config['leading_bits'],
-      'sequence_length': self.calculator.config['sequence_length']
+      'total_bits': self.matcher._calculator._total_bits,
+      'leading_bits': self.matcher._calculator._leading_bits,
+      'sequence_length': self.matcher._calculator._sequence_length
     }
 
     response = self.client.post("/syncopate/calculator/config", 
-      json={'total_bits': 100, 'leading_bits': 200, 'sequence_length': 300})
+      json={'total_bits': 1000, 'leading_bits': 200, 'sequence_length': 30})
     self.assertEqual(response.status_code, 200)
-    assert self.calculator.config['total_bits'] == 100
-    assert self.calculator.config['leading_bits'] == 200
-    assert self.calculator.config['sequence_length'] == 300
+    assert self.matcher._calculator._total_bits == 1000
+    assert self.matcher._calculator._leading_bits == 200
+    assert self.matcher._calculator._sequence_length == 30
 
   def test_topics(self):
     response = self.client.get("/syncopate/topics")
     self.assertEqual(response.status_code, 200)
-    assert response.json() == list(SyncopateMatcher().topics)
+    assert response.json() == list(self.matcher.topics)
 
-    response = self.client.post("/syncopate/topics/subscribe", json={'topics': ['t1', 't2']})
+    response = self.client.post("/syncopate/topics/subscribe", json={'topics': ['channel1', 'channel2']})
     self.assertEqual(response.status_code, 200)
-    assert SyncopateMatcher().topics == {'t1', 't2'}
+    assert self.matcher.topics == {'channel1', 'channel2'}
 
-    response = self.client.post("/syncopate/topics/unsubscribe", json={'topics': ['t1']})
+    response = self.client.post("/syncopate/topics/unsubscribe", json={'topics': ['channel1']})
     self.assertEqual(response.status_code, 200)
-    assert SyncopateMatcher().topics == {'t2'}
+    assert self.matcher.topics == {'channel2'}
 
-    response = self.client.post("/syncopate/topics/update", json={'topics': ['t3', 't9']})
+    response = self.client.post("/syncopate/topics/update", json={'topics': ['channel3', 'channel9']})
     self.assertEqual(response.status_code, 200)
-    assert SyncopateMatcher().topics == {'t3', 't9'}
+    assert self.matcher.topics == {'channel3', 'channel9'}
 
 if __name__ == '__main__':
   unittest.main()

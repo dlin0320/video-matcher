@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mock-producer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mock-producer
+  template:
+    metadata:
+      labels:
+        app: mock-producer
+    spec:
+      containers:
+      - name: mock-producer
+        image: mock-producer:latest
+        imagePullPolicy: Never

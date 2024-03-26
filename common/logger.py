@@ -16,6 +16,6 @@ def get_logger(name):
   logger.addHandler(handler)
   return logger
 
-default_logger = get_logger("default")
+debug_logger = get_logger("debug")
 
 kafka_logger = get_logger("kafka")

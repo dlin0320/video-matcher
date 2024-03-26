@@ -1,17 +1,18 @@
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from common.logger import get_logger
 from matching_service.syncopate.matcher import SyncopateMatcher
 from typing import List, Optional
 
 class MatcherConfig(BaseModel):
-  matching_window: Optional[int] = None
-  matching_threshold: Optional[float] = None
+  matching_window: Optional[int] = Field(None, ge=1)
+  matching_threshold: Optional[float] = Field(None, ge=1)
+  matching_count: Optional[int] = Field(None, ge=1)
 
 class CalculatorConfig(BaseModel):
-  total_bits: Optional[int] = None
-  leading_bits: Optional[int] = None
-  sequence_length: Optional[int] = None
+  total_bits: Optional[int] = Field(None, ge=1)
+  leading_bits: Optional[int] = Field(None, ge=1)
+  sequence_length: Optional[int] = Field(None, ge=1)
 
 class Topics(BaseModel):
   topics: List[str] = []

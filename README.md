@@ -57,28 +57,19 @@ The Video Sequence Matching Service is designed to identify repeated sequences i
 ```
 ## How to run
 
-### Note
-All scripts listed are idempotent, but the ordering of execution is important.
-
-### Monorepo
-
-#### Requirements
-- Docker
-```
-sudo chmod +x start_mono.sh
-./start_mono.sh
-```
-The app's endpoint will be exposed at http://localhost:8000/docs
-
-### Microservice
-
 #### Requirements
 - Minikube
 - Docker
 ```
 sudo chmod +x start_kube.sh
 sudo chmod +x start_kafka.sh
+sudo chmod +x start_services.sh
 ./start_kube.sh
 ./start_kafka.sh
+./start_services.sh
 ```
 After matching-service is started, run ```minikube service matching-service --url``` to get the service's endpoint and append it with ```/docs``` to access FastAPI's documentation page.
+
+```kubectl get pods``` to get all the pods
+- mock-producer will produce mock bits when start up
+- mock-consumer pod will provide logs of the matching times in real time

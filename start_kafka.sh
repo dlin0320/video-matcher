@@ -19,12 +19,10 @@ deploy_kafka_cluster() {
     fi
 }
 
-deploy_kafka_cluster kafka-cluster-1
-deploy_kafka_cluster kafka-cluster-2
-deploy_kafka_cluster kafka-cluster-3
+deploy_kafka_cluster kafka-cluster
 
-echo "Deployment process completed. Checking pods..."
+kafka_password=$(kubectl get secret kafka-cluster-user-passwords -o jsonpath="{.data.client-passwords}" | base64 --decode)
 
-kubectl get pods
+echo "KAFKA_PASSWORD=$kafka_password" > .env
 
-echo "Remember to adjust port-forwarding or service exposure based on your access needs."
+echo "Kafka cluster deployed."

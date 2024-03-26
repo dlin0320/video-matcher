@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mock-consumer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mock-consumer
+  template:
+    metadata:
+      labels:
+        app: mock-consumer
+    spec:
+      containers:
+      - name: mock-consumer
+        image: mock-consumer:latest
+        imagePullPolicy: Never
